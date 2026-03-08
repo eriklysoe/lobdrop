@@ -20,7 +20,7 @@ A self-hosted file sharing app. Upload files, share via link or email invite. Si
 ## Quick Start with Docker Compose
 
 ```bash
-git clone https://github.com/youruser/glidrop.git
+git clone https://github.com/eriklysoe/glidrop.git
 cd glidrop
 docker compose up -d
 ```
