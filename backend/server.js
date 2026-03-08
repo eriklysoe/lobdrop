@@ -22,6 +22,9 @@ const FILE_EXPIRY_DAYS = parseInt(process.env.FILE_EXPIRY_DAYS || '7', 10);
 const SECRET_KEY = process.env.SECRET_KEY || 'change-me';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || '';
+
 const SMTP_HOST = process.env.SMTP_HOST || '';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
 const SMTP_USER = process.env.SMTP_USER || '';
@@ -51,6 +54,15 @@ db.exec(`
     password_hash TEXT,
     max_downloads INTEGER,
     download_count INTEGER DEFAULT 0,
+    expires_at TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now'))
   )
@@ -154,6 +166,46 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: MAX_FILE_SIZE } });
 
+// ── Auth helpers ────────────────────────────────────────────────────────────
+const SESSION_DAYS = 30;
+
+function generateSession() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+function requireAuth(req, res, next) {
+  const token = req.cookies?.session;
+  if (!token) return res.status(401).json({ error: 'Login required' });
+
+  const session = db.prepare(
+    `SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')`
+  ).get(token);
+
+  if (!session) return res.status(401).json({ error: 'Session expired' });
+  req.user = session.username;
+  next();
+}
+
+// Cleanup expired sessions alongside files
+const origCleanup = cleanupExpired;
+cleanupExpired = function () {
+  origCleanup();
+  db.prepare(`DELETE FROM sessions WHERE expires_at < datetime('now')`).run();
+};
+
+// ── Cookie parser (minimal) ─────────────────────────────────────────────────
+app.use((req, _res, next) => {
+  req.cookies = {};
+  const header = req.headers.cookie;
+  if (header) {
+    for (const pair of header.split(';')) {
+      const [k, ...v] = pair.trim().split('=');
+      if (k) req.cookies[k.trim()] = v.join('=').trim();
+    }
+  }
+  next();
+});
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 // Health check
@@ -162,8 +214,54 @@ app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
 // SMTP status
 app.get('/api/smtp-status', (_req, res) => res.json({ configured: smtpConfigured }));
 
-// Upload
-app.post('/api/upload', uploadLimiter, upload.array('files', 50), async (req, res) => {
+// Auth: login
+app.post('/api/auth/login', express.json(), (req, res) => {
+  const { username, password } = req.body || {};
+
+  if (!ADMIN_PASS) {
+    return res.status(500).json({ error: 'ADMIN_PASS not configured on server' });
+  }
+
+  if (username !== ADMIN_USER || password !== ADMIN_PASS) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = generateSession();
+  db.prepare(
+    `INSERT INTO sessions (token, username, expires_at) VALUES (?, ?, datetime('now', '+' || ? || ' days'))`
+  ).run(token, username, SESSION_DAYS);
+
+  res.setHeader('Set-Cookie',
+    `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_DAYS * 86400}`
+  );
+  res.json({ username });
+});
+
+// Auth: check session
+app.get('/api/auth/me', (req, res) => {
+  const token = req.cookies?.session;
+  if (!token) return res.status(401).json({ error: 'Not logged in' });
+
+  const session = db.prepare(
+    `SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')`
+  ).get(token);
+
+  if (!session) return res.status(401).json({ error: 'Session expired' });
+  res.json({ username: session.username });
+});
+
+// Auth: logout
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.cookies?.session;
+  if (token) {
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+  }
+  res.setHeader('Set-Cookie', 'session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+  res.json({ ok: true });
+});
+
+// Upload (requires auth)
+app.post('/api/upload', requireAuth, uploadLimiter, upload.array('files', 50), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files provided' });

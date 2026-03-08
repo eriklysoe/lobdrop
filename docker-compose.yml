@@ -13,6 +13,8 @@ services:
       - BASE_URL=${BASE_URL:-http://localhost:3000}
       - MAX_FILE_SIZE_MB=100
       - FILE_EXPIRY_DAYS=7
+      - ADMIN_USER=admin
+      - ADMIN_PASS=change-me-to-a-secure-password
       - SECRET_KEY=change-me-to-a-random-string
       - CORS_ORIGIN=*
       - PUID=1000

@@ -5,7 +5,8 @@ A self-hosted file sharing app. Upload files, share via link or email invite. Si
 ## Features
 
 - Upload one or multiple files at once with drag-and-drop
-- Shareable download links (short, unguessable tokens)
+- Login required to upload (keeps your instance private)
+- Shareable download links stay public (no login needed for recipients)
 - Optional email invites to recipients
 - Optional password protection per upload
 - Optional max download limit per file
@@ -39,6 +40,8 @@ Open `http://localhost:3000` in your browser.
 | `FILE_EXPIRY_DAYS` | `7` | Default days until link expires |
 | `SECRET_KEY` | `change-me` | Key for password hashing |
 | `CORS_ORIGIN` | `*` | CORS allowed origins |
+| `ADMIN_USER` | `admin` | Login username |
+| `ADMIN_PASS` | _(empty)_ | Login password (**required**) |
 | `PUID` | `1000` | Run as this user ID |
 | `PGID` | `1000` | Run as this group ID |
 | `SMTP_HOST` | _(empty)_ | SMTP server hostname |

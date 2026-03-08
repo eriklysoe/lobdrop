@@ -8,7 +8,7 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-export default function UploadCard() {
+export default function UploadCard({ user, onLogout }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -133,9 +133,16 @@ export default function UploadCard() {
 
   return (
     <div className="card">
-      <a href="/" className="logo-link">
-        <h1>Glidrop</h1>
-      </a>
+      <div className="card-top">
+        <a href="/" className="logo-link">
+          <h1>Glidrop</h1>
+        </a>
+        {user && (
+          <button className="logout-btn" onClick={onLogout} title="Sign out">
+            {user} &middot; logout
+          </button>
+        )}
+      </div>
       <p className="subtitle">Drop files, share links.</p>
 
       {!results ? (
