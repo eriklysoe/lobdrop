@@ -1,0 +1,30 @@
+services:
+  glidrop:
+    build: .
+    container_name: glidrop
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/data/uploads
+      - db:/data/db
+    environment:
+      - PORT=3000
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - MAX_FILE_SIZE_MB=100
+      - FILE_EXPIRY_DAYS=7
+      - SECRET_KEY=change-me-to-a-random-string
+      - CORS_ORIGIN=*
+      - PUID=1000
+      - PGID=1000
+      # SMTP (uncomment to enable email invites)
+      # - SMTP_HOST=smtp.example.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=user@example.com
+      # - SMTP_PASS=password
+      # - SMTP_FROM=noreply@example.com
+      # - SMTP_SECURE=false
+
+volumes:
+  uploads:
+  db:

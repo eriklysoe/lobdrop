@@ -1,0 +1,484 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0b0d13;
+  --surface: #13151e;
+  --surface-hover: #1a1d2b;
+  --border: #252838;
+  --text: #e4e5eb;
+  --text-dim: #8b8ea0;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-glow: rgba(124, 58, 237, 0.25);
+  --success: #34d399;
+  --error: #f87171;
+  --radius: 12px;
+  --font: 'Space Grotesk', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-bg {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.app-gradient {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124, 58, 237, 0.15), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(99, 102, 241, 0.08), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.card h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, #e4e5eb, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card .subtitle {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+
+/* ── Drop zone ───────────────────────────────────────── */
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.dropzone:hover,
+.dropzone.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.dropzone svg {
+  width: 40px;
+  height: 40px;
+  stroke: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.dropzone.active svg {
+  stroke: var(--accent);
+}
+
+.dropzone p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.dropzone .browse {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* ── File list ───────────────────────────────────────── */
+
+.file-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+
+.file-item .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.file-item .size {
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.file-item .remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 1.1rem;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.file-item .remove:hover {
+  color: var(--error);
+}
+
+/* ── Options ─────────────────────────────────────────── */
+
+.options {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-row {
+  display: flex;
+  gap: 12px;
+}
+
+.option-row > * {
+  flex: 1;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* ── Toggle ──────────────────────────────────────────── */
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-top: 8px;
+  user-select: none;
+}
+
+.toggle-row .toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--border);
+  border-radius: 10px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-row .toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.toggle-row.on .toggle-switch {
+  background: var(--accent);
+}
+
+.toggle-row.on .toggle-switch::after {
+  left: 18px;
+  background: #fff;
+}
+
+.email-section {
+  margin-top: 12px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 0;
+  opacity: 0;
+}
+
+.email-section.open {
+  max-height: 200px;
+  opacity: 1;
+}
+
+.smtp-notice {
+  color: var(--error);
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+/* ── Button ──────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border);
+}
+
+/* ── Progress ────────────────────────────────────────── */
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.progress-bar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #a78bfa);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.progress-text {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* ── Results ─────────────────────────────────────────── */
+
+.results {
+  margin-top: 24px;
+}
+
+.results h2 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  color: var(--success);
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.result-item .name {
+  flex: 1;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-item .copy-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: background 0.2s;
+}
+
+.result-item .copy-btn:hover {
+  background: var(--accent-hover);
+}
+
+.result-item .copy-btn.copied {
+  background: var(--success);
+}
+
+/* ── Download Page ───────────────────────────────────── */
+
+.dl-card {
+  text-align: center;
+}
+
+.dl-card .file-icon {
+  width: 64px;
+  height: 64px;
+  stroke: var(--accent);
+  margin-bottom: 16px;
+}
+
+.dl-card h1 {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  word-break: break-all;
+}
+
+.dl-info {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.dl-info span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dl-password {
+  margin-bottom: 20px;
+}
+
+.dl-password input {
+  max-width: 280px;
+  margin: 0 auto;
+  display: block;
+}
+
+.dl-error {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.dl-expired {
+  color: var(--error);
+}
+
+.logo-link {
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .card {
+    padding: 20px;
+  }
+
+  .option-row {
+    flex-direction: column;
+  }
+}
