@@ -15,7 +15,7 @@ A self-hosted file sharing app. Upload files, share via link or email invite. Si
 - Download page with file info, size, expiry countdown
 - Rate limiting on uploads and downloads
 - PUID/PGID support for Docker
-- Works behind reverse proxies (Traefik, Nginx, Pangolin)
+- Works behind reverse proxies
 - Health check endpoint at `/healthz`
 
 ## Quick Start with Docker Compose
@@ -50,55 +50,6 @@ Open `http://localhost:3000` in your browser.
 | `SMTP_PASS` | _(empty)_ | SMTP password |
 | `SMTP_FROM` | _(empty)_ | From address for emails |
 | `SMTP_SECURE` | `false` | Use TLS for SMTP |
-
-## Reverse Proxy: Pangolin
-
-```yaml
-# In your Pangolin config, add a route:
-routes:
-  - name: glidrop
-    match:
-      host: share.yourdomain.com
-    action:
-      proxy:
-        url: http://glidrop:3000
-        headers:
-          X-Forwarded-For: "{remote_addr}"
-          X-Forwarded-Proto: "{scheme}"
-```
-
-Set `BASE_URL=https://share.yourdomain.com` in your docker-compose environment.
-
-## Reverse Proxy: Nginx
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name share.yourdomain.com;
-
-    client_max_body_size 100M;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Reverse Proxy: Traefik
-
-```yaml
-# docker-compose.yml labels
-labels:
-  - "traefik.enable=true"
-  - "traefik.http.routers.glidrop.rule=Host(`share.yourdomain.com`)"
-  - "traefik.http.routers.glidrop.entrypoints=websecure"
-  - "traefik.http.routers.glidrop.tls.certresolver=letsencrypt"
-  - "traefik.http.services.glidrop.loadbalancer.server.port=3000"
-```
 
 ## Manual Build (without Docker)
 
