@@ -129,7 +129,7 @@ async function sendShareEmail(to, fileName, downloadUrl) {
 
 // ── Express App ─────────────────────────────────────────────────────────────
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 app.use(helmet({
   contentSecurityPolicy: false,
