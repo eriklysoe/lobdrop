@@ -51,6 +51,8 @@ Open `http://localhost:3000` in your browser.
 | `SMTP_FROM` | _(empty)_ | From address for emails |
 | `SMTP_SECURE` | `false` | Use TLS for SMTP |
 
+When using a reverse proxy, set `BASE_URL=https://share.yourdomain.com` in your docker-compose environment so that generated share links use the correct public URL.
+
 ## Manual Build (without Docker)
 
 ```bash
