@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import UploadCard from './components/UploadCard';
 import FileManager from './components/FileManager';
 import DownloadPage from './components/DownloadPage';
+import BundleDownloadPage from './components/BundleDownloadPage';
 import LoginPage from './components/LoginPage';
 
 function AdminPanel({ user, onLogout }) {
@@ -69,6 +70,7 @@ export default function App() {
               <LoginPage onLogin={setUser} />
             } />
             <Route path="/d/:token" element={<DownloadPage />} />
+            <Route path="/b/:token" element={<BundleDownloadPage />} />
           </Routes>
         </div>
       </div>

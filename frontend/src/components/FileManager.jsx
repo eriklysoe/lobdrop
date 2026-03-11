@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import ShareModal from './ShareModal';
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -38,6 +39,8 @@ export default function FileManager() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState({});
   const [deleting, setDeleting] = useState({});
+  const [selected, setSelected] = useState(new Set());
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const fetchFiles = useCallback(() => {
     setLoading(true);
@@ -49,6 +52,23 @@ export default function FileManager() {
   }, []);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
+
+  const toggleSelect = (token) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(token)) next.delete(token);
+      else next.add(token);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === files.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(files.map(f => f.token)));
+    }
+  };
 
   const copyLink = (token) => {
     const url = `${window.location.origin}/d/${token}`;
@@ -75,6 +95,11 @@ export default function FileManager() {
       .then(r => {
         if (!r.ok) throw new Error('Delete failed');
         setFiles(prev => prev.filter(f => f.token !== token));
+        setSelected(prev => {
+          const next = new Set(prev);
+          next.delete(token);
+          return next;
+        });
       })
       .catch(() => setError('Failed to delete file'))
       .finally(() => setDeleting(prev => ({ ...prev, [token]: false })));
@@ -86,9 +111,38 @@ export default function FileManager() {
 
   return (
     <div className="fm-list">
-      <p className="fm-count">{files.length} file{files.length !== 1 ? 's' : ''}</p>
+      <div className="fm-header">
+        <label className="fm-select-all" onClick={toggleSelectAll}>
+          <input
+            type="checkbox"
+            checked={selected.size === files.length}
+            readOnly
+            className="fm-checkbox"
+          />
+          <span className="fm-count">{files.length} file{files.length !== 1 ? 's' : ''}</span>
+        </label>
+      </div>
+
+      {selected.size > 0 && (
+        <div className="fm-toolbar">
+          <span>{selected.size} selected</span>
+          <button className="fm-share-btn" onClick={() => setShowShareModal(true)}>
+            Share selected
+          </button>
+          <button className="del-btn" onClick={() => setSelected(new Set())} style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+            Clear
+          </button>
+        </div>
+      )}
+
       {files.map(f => (
         <div key={f.token} className={`fm-item${timeUntil(f.expiresAt) === 'expired' ? ' fm-expired' : ''}`}>
+          <input
+            type="checkbox"
+            checked={selected.has(f.token)}
+            onChange={() => toggleSelect(f.token)}
+            className="fm-checkbox"
+          />
           <div className="fm-info">
             <span className="fm-name">{f.name}</span>
             <span className="fm-meta">
@@ -117,6 +171,15 @@ export default function FileManager() {
           </div>
         </div>
       ))}
+
+      {showShareModal && (
+        <ShareModal
+          selectedTokens={selected}
+          files={files}
+          onClose={() => setShowShareModal(false)}
+          onDone={() => setSelected(new Set())}
+        />
+      )}
     </div>
   );
 }

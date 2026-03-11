@@ -637,6 +637,196 @@ textarea {
   cursor: not-allowed;
 }
 
+/* ── File Manager Checkboxes & Toolbar ───────────────── */
+
+.fm-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fm-header {
+  margin-bottom: 12px;
+}
+
+.fm-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 0;
+}
+
+.fm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.fm-toolbar span {
+  flex: 1;
+  color: var(--text-dim);
+}
+
+.fm-share-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: background 0.2s;
+}
+
+.fm-share-btn:hover {
+  background: var(--accent-hover);
+}
+
+/* ── Share Modal ──────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.modal-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+
+.modal-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.modal-file-item {
+  font-size: 0.85rem;
+  color: var(--text);
+  padding: 8px 10px;
+  background: var(--surface-hover);
+  border-radius: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.modal-url-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Bundle Download Page ─────────────────────────────── */
+
+.bundle-card {
+  max-width: 580px;
+}
+
+.bundle-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.bundle-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.bundle-file-item.expired {
+  opacity: 0.5;
+}
+
+.bundle-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bundle-file-name {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bundle-file-meta {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.bundle-dl-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.bundle-dl-btn:hover {
+  background: var(--accent-hover);
+}
+
+.bundle-dl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Responsive ──────────────────────────────────────── */
 
 @media (max-width: 560px) {
@@ -661,5 +851,15 @@ textarea {
   .fm-actions .copy-btn,
   .del-btn {
     flex: 1;
+  }
+
+  .bundle-file-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bundle-dl-btn {
+    width: 100%;
+    margin-top: 8px;
   }
 }

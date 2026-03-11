@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import Database from 'better-sqlite3';
 import nodemailer from 'nodemailer';
+import archiver from 'archiver';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -68,6 +69,25 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS bundles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT UNIQUE NOT NULL,
+    created_by TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS bundle_files (
+    bundle_id INTEGER NOT NULL,
+    file_token TEXT NOT NULL,
+    PRIMARY KEY (bundle_id, file_token),
+    FOREIGN KEY (bundle_id) REFERENCES bundles(id) ON DELETE CASCADE,
+    FOREIGN KEY (file_token) REFERENCES files(token) ON DELETE CASCADE
+  )
+`);
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function generateToken() {
   return crypto.randomBytes(8).toString('base64url').slice(0, 10);
@@ -93,6 +113,8 @@ function cleanupExpired() {
     try { fs.unlinkSync(filePath); } catch { /* already gone */ }
   }
   db.prepare(`DELETE FROM files WHERE expires_at < datetime('now')`).run();
+  // Remove empty bundles (all their files were deleted or expired)
+  db.prepare(`DELETE FROM bundles WHERE id NOT IN (SELECT DISTINCT bundle_id FROM bundle_files)`).run();
 }
 
 // Run cleanup every hour
@@ -122,6 +144,25 @@ async function sendShareEmail(to, fileName, downloadUrl) {
         <h2 style="color:#7c3aed;">A file has been shared with you</h2>
         <p><strong>${fileName}</strong></p>
         <a href="${downloadUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;margin-top:12px;">Download File</a>
+      </div>
+    `,
+  });
+}
+
+async function sendBundleEmail(to, fileNames, bundleUrl) {
+  if (!transporter) return;
+  const fileList = fileNames.map(n => `  - ${n}`).join('\n');
+  const fileListHtml = fileNames.map(n => `<li>${n}</li>`).join('');
+  await transporter.sendMail({
+    from: SMTP_FROM,
+    to,
+    subject: `Files shared with you (${fileNames.length} file${fileNames.length !== 1 ? 's' : ''})`,
+    text: `Files have been shared with you:\n\n${fileList}\n\nDownload: ${bundleUrl}\n`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+        <h2 style="color:#7c3aed;">Files shared with you</h2>
+        <ul>${fileListHtml}</ul>
+        <a href="${bundleUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;margin-top:12px;">View &amp; Download</a>
       </div>
     `,
   });
@@ -401,6 +442,150 @@ app.get('/api/download/:token', downloadLimiter, (req, res) => {
   }
 
   res.download(filePath, file.original_name);
+});
+
+// ── Bundles ─────────────────────────────────────────────────────────────────
+
+// Create bundle (requires auth)
+app.post('/api/bundles', requireAuth, (req, res) => {
+  try {
+    const { fileTokens, emails } = req.body || {};
+    if (!Array.isArray(fileTokens) || fileTokens.length === 0) {
+      return res.status(400).json({ error: 'No files selected' });
+    }
+
+    // Validate all tokens exist and are not expired
+    const validFiles = [];
+    for (const ft of fileTokens) {
+      const file = db.prepare(
+        `SELECT token, original_name FROM files WHERE token = ? AND expires_at > datetime('now')`
+      ).get(ft);
+      if (file) validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) {
+      return res.status(400).json({ error: 'No valid files found' });
+    }
+
+    const bundleToken = generateToken();
+    const insertBundle = db.prepare(
+      `INSERT INTO bundles (token, created_by) VALUES (?, ?)`
+    );
+    const insertBundleFile = db.prepare(
+      `INSERT INTO bundle_files (bundle_id, file_token) VALUES (?, ?)`
+    );
+
+    const result = insertBundle.run(bundleToken, req.user || '');
+    for (const f of validFiles) {
+      insertBundleFile.run(result.lastInsertRowid, f.token);
+    }
+
+    const bundleUrl = `${BASE_URL}/b/${bundleToken}`;
+
+    // Send emails if configured and provided
+    if (emails && smtpConfigured) {
+      const recipients = emails.split(',').map(e => e.trim()).filter(Boolean);
+      const fileNames = validFiles.map(f => f.original_name);
+      for (const to of recipients) {
+        sendBundleEmail(to, fileNames, bundleUrl).catch(() => {});
+      }
+    }
+
+    res.json({ token: bundleToken, url: bundleUrl });
+  } catch (err) {
+    console.error('Bundle creation error:', err);
+    res.status(500).json({ error: 'Failed to create bundle' });
+  }
+});
+
+// Get bundle info (public)
+app.get('/api/bundle/:token', (req, res) => {
+  const bundle = db.prepare('SELECT * FROM bundles WHERE token = ?').get(req.params.token);
+  if (!bundle) return res.status(404).json({ error: 'Bundle not found' });
+
+  const files = db.prepare(`
+    SELECT f.token, f.original_name, f.size, f.uploader,
+           f.password_hash IS NOT NULL AS password_protected,
+           f.download_count, f.max_downloads, f.expires_at
+    FROM files f
+    JOIN bundle_files bf ON bf.file_token = f.token
+    WHERE bf.bundle_id = ?
+    ORDER BY f.original_name
+  `).all(bundle.id);
+
+  const now = new Date();
+  res.json({
+    token: bundle.token,
+    createdBy: bundle.created_by,
+    createdAt: bundle.created_at,
+    files: files.map(f => {
+      const expiresAt = new Date(f.expires_at + 'Z');
+      const expired = expiresAt < now;
+      const limitReached = f.max_downloads && f.download_count >= f.max_downloads;
+      return {
+        token: f.token,
+        name: f.original_name,
+        size: f.size,
+        sizeFormatted: formatBytes(f.size),
+        uploader: f.uploader,
+        passwordProtected: !!f.password_protected,
+        downloadsRemaining: f.max_downloads ? f.max_downloads - f.download_count : null,
+        expiresAt: f.expires_at,
+        expired: expired || !!limitReached,
+        reason: expired ? 'Expired' : limitReached ? 'Download limit reached' : null,
+      };
+    }),
+  });
+});
+
+// Download bundle as ZIP (public)
+app.get('/api/bundle/:token/zip', downloadLimiter, (req, res) => {
+  const bundle = db.prepare('SELECT * FROM bundles WHERE token = ?').get(req.params.token);
+  if (!bundle) return res.status(404).json({ error: 'Bundle not found' });
+
+  const files = db.prepare(`
+    SELECT f.* FROM files f
+    JOIN bundle_files bf ON bf.file_token = f.token
+    WHERE bf.bundle_id = ?
+      AND f.expires_at > datetime('now')
+      AND (f.max_downloads IS NULL OR f.download_count < f.max_downloads)
+      AND f.password_hash IS NULL
+  `).all(bundle.id);
+
+  if (!files.length) {
+    return res.status(410).json({ error: 'No downloadable files in bundle' });
+  }
+
+  res.set('Content-Type', 'application/zip');
+  res.set('Content-Disposition', `attachment; filename="glidrop-bundle-${bundle.token}.zip"`);
+
+  const archive = archiver('zip', { zlib: { level: 5 } });
+  archive.on('error', (err) => {
+    console.error('Archive error:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'ZIP creation failed' });
+  });
+  archive.pipe(res);
+
+  // Deduplicate filenames
+  const usedNames = new Map();
+  for (const f of files) {
+    const filePath = path.join(UPLOAD_DIR, f.stored_name);
+    if (!fs.existsSync(filePath)) continue;
+
+    let name = f.original_name;
+    const count = usedNames.get(name) || 0;
+    if (count > 0) {
+      const ext = path.extname(name);
+      const base = name.slice(0, name.length - ext.length);
+      name = `${base} (${count})${ext}`;
+    }
+    usedNames.set(f.original_name, count + 1);
+
+    archive.file(filePath, { name });
+    db.prepare('UPDATE files SET download_count = download_count + 1 WHERE id = ?').run(f.id);
+  }
+
+  archive.finalize();
 });
 
 // ── Serve frontend (production) ─────────────────────────────────────────────
