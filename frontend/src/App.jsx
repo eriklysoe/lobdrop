@@ -1,8 +1,44 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import UploadCard from './components/UploadCard';
+import FileManager from './components/FileManager';
 import DownloadPage from './components/DownloadPage';
 import LoginPage from './components/LoginPage';
+
+function AdminPanel({ user, onLogout }) {
+  const [tab, setTab] = useState('upload');
+
+  return (
+    <div className="card">
+      <div className="card-top">
+        <a href="/" className="logo-link">
+          <h1>Glidrop</h1>
+        </a>
+        {user && (
+          <button className="logout-btn" onClick={onLogout} title="Sign out">
+            {user} &middot; logout
+          </button>
+        )}
+      </div>
+      <p className="subtitle">Drop files, share links.</p>
+
+      <div className="tab-bar">
+        <button className={`tab-btn${tab === 'upload' ? ' active' : ''}`} onClick={() => setTab('upload')}>
+          Upload
+        </button>
+        <button className={`tab-btn${tab === 'files' ? ' active' : ''}`} onClick={() => setTab('files')}>
+          Files
+        </button>
+      </div>
+
+      {tab === 'upload' ? (
+        <UploadCard user={user} onSwitchToFiles={() => setTab('files')} />
+      ) : (
+        <FileManager />
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -29,7 +65,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={
               checking ? null :
-              user ? <UploadCard user={user} onLogout={handleLogout} /> :
+              user ? <AdminPanel user={user} onLogout={handleLogout} /> :
               <LoginPage onLogin={setUser} />
             } />
             <Route path="/d/:token" element={<DownloadPage />} />

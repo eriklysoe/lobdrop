@@ -495,6 +495,147 @@ textarea {
   display: inline-block;
 }
 
+/* ── Tabs ────────────────────────────────────────────── */
+
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* ── File Manager ────────────────────────────────────── */
+
+.fm-status {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 32px 0;
+}
+
+.fm-count {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.fm-list {
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.fm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.fm-item.fm-expired {
+  opacity: 0.5;
+}
+
+.fm-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fm-name {
+  display: block;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.fm-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.fm-actions .copy-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: background 0.2s;
+}
+
+.fm-actions .copy-btn:hover {
+  background: var(--accent-hover);
+}
+
+.fm-actions .copy-btn.copied {
+  background: var(--success);
+}
+
+.del-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: all 0.2s;
+}
+
+.del-btn:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.del-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Responsive ──────────────────────────────────────── */
 
 @media (max-width: 560px) {
@@ -504,5 +645,20 @@ textarea {
 
   .option-row {
     flex-direction: column;
+  }
+
+  .fm-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fm-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .fm-actions .copy-btn,
+  .del-btn {
+    flex: 1;
   }
 }

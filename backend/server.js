@@ -307,6 +307,43 @@ app.post('/api/upload', requireAuth, uploadLimiter, upload.array('files', 50), a
   }
 });
 
+// List all files (admin only)
+app.get('/api/files', requireAuth, (_req, res) => {
+  const rows = db.prepare(
+    `SELECT token, original_name, size, uploader, download_count, max_downloads,
+            password_hash IS NOT NULL AS password_protected,
+            expires_at, created_at
+     FROM files ORDER BY created_at DESC`
+  ).all();
+
+  res.json({
+    files: rows.map(r => ({
+      token: r.token,
+      name: r.original_name,
+      size: r.size,
+      sizeFormatted: formatBytes(r.size),
+      uploader: r.uploader,
+      downloadCount: r.download_count,
+      maxDownloads: r.max_downloads,
+      passwordProtected: !!r.password_protected,
+      expiresAt: r.expires_at,
+      createdAt: r.created_at,
+    })),
+  });
+});
+
+// Delete file (admin only)
+app.delete('/api/files/:token', requireAuth, (req, res) => {
+  const file = db.prepare('SELECT stored_name FROM files WHERE token = ?').get(req.params.token);
+  if (!file) return res.status(404).json({ error: 'File not found' });
+
+  const filePath = path.join(UPLOAD_DIR, file.stored_name);
+  try { fs.unlinkSync(filePath); } catch { /* already gone */ }
+  db.prepare('DELETE FROM files WHERE token = ?').run(req.params.token);
+
+  res.json({ ok: true });
+});
+
 // File info (for download page)
 app.get('/api/file/:token', (req, res) => {
   const file = db.prepare('SELECT * FROM files WHERE token = ?').get(req.params.token);

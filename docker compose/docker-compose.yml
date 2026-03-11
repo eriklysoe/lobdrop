@@ -1,6 +1,6 @@
 services:
   glidrop:
-    image: eriklysoe/glidrop:v1.0.1
+    image: eriklysoe/glidrop:latest
     container_name: glidrop
     restart: unless-stopped
     ports:

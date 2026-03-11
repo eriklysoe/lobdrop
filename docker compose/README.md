@@ -1,10 +1,6 @@
-# Glidrop v1.0.1
+# Glidrop
 
 A self-hosted file sharing app. Upload files, share via link or email invite. Simple, fast, Docker-ready.
-
-## Changes in v1.0.1
-
-- Fix Docker healthcheck failing on Alpine (use 127.0.0.1 instead of localhost to avoid IPv6 resolution issue)
 
 ## Quick Start
 
@@ -19,7 +15,7 @@ Open `http://localhost:3000` in your browser.
 ## Docker Hub
 
 ```
-docker pull eriklysoe/glidrop:v1.0.1
+docker pull eriklysoe/glidrop:latest
 ```
 
 ## Environment Variables
