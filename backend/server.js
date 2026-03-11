@@ -134,6 +134,8 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  originAgentCluster: false,
 }));
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
