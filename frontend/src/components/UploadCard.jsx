@@ -141,7 +141,7 @@ export default function UploadCard({ user, onSwitchToFiles }) {
             type="file"
             multiple
             style={{ display: 'none' }}
-            onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
+            onChange={(e) => { const f = Array.from(e.target.files); addFiles(f); e.target.value = ''; }}
           />
           <label
             htmlFor="file-input"
