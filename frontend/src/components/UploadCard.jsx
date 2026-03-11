@@ -19,7 +19,6 @@ export default function UploadCard({ user, onSwitchToFiles }) {
   const [dragActive, setDragActive] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const inputRef = useRef();
-  const pickerOpen = useRef(false);
 
   const [uploader, setUploader] = useState('');
   const [password, setPassword] = useState('');
@@ -136,27 +135,27 @@ export default function UploadCard({ user, onSwitchToFiles }) {
     <div>
       {!results ? (
         <>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            hidden
-            onChange={(e) => { addFiles(e.target.files); e.target.value = ''; pickerOpen.current = false; }}
-            onCancel={() => { pickerOpen.current = false; }}
-          />
-          <div
+          <label
+            htmlFor="file-input"
             className={`dropzone${dragActive ? ' active' : ''}`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            onClick={() => { if (pickerOpen.current) return; pickerOpen.current = true; inputRef.current?.click(); }}
           >
+            <input
+              id="file-input"
+              ref={inputRef}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
+            />
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
             <p>Drag & drop files here or <span className="browse">browse</span></p>
-          </div>
+          </label>
 
           {files.length > 0 && (
             <div className="file-list">
