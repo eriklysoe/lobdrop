@@ -59,4 +59,5 @@ Styling is in `frontend/src/index.css` (CSS variables, no preprocessor).
 
 ## Docker Hub
 
-Image: `eriklysoe/lobdrop` — push both `:vX.Y.Z` and `:latest` tags.
+Image: `eriklysoe/lobdrop` — push both `:vX.Y` and `:latest` tags.
+
