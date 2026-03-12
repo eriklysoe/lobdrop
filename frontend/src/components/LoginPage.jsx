@@ -33,7 +33,7 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className="card">
       <a href="/" className="logo-link">
-        <h1>Glidrop</h1>
+        <h1>LobDrop</h1>
       </a>
       <p className="subtitle">Sign in to upload files</p>
 

@@ -1,21 +1,21 @@
 services:
-  glidrop:
+  lobdrop:
     build: .
-    container_name: glidrop
+    container_name: lobdrop
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      - uploads:/data/uploads
-      - db:/data/db
+      - /home/erik/lobdrop-repo/uploads:/data/uploads
+      - /home/erik/lobdrop-repo/db:/data/db
     environment:
       - PORT=3000
       - BASE_URL=${BASE_URL:-http://localhost:3000}
       - MAX_FILE_SIZE_MB=100
       - FILE_EXPIRY_DAYS=7
       - ADMIN_USER=admin
-      - ADMIN_PASS=change-me-to-a-secure-password
-      - SECRET_KEY=change-me-to-a-random-string
+      - ADMIN_PASS=testing
+      - SECRET_KEY=altofordrlkjdsokij
       - CORS_ORIGIN=*
       - PUID=1000
       - PGID=1000

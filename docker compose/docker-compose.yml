@@ -1,7 +1,7 @@
 services:
-  glidrop:
-    image: eriklysoe/glidrop:latest
-    container_name: glidrop
+  lobdrop:
+    image: eriklysoe/lobdrop:latest
+    container_name: lobdrop
     restart: unless-stopped
     ports:
       - "3000:3000"

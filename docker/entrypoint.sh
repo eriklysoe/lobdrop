@@ -25,5 +25,5 @@ fi
 mkdir -p /data/uploads /data/db
 chown -R "$PUID:$PGID" /data /app
 
-echo "Starting Glidrop as UID=$PUID GID=$PGID ($USERNAME:$GROUPNAME)"
+echo "Starting LobDrop as UID=$PUID GID=$PGID ($USERNAME:$GROUPNAME)"
 exec su-exec "$USERNAME" node /app/backend/server.js

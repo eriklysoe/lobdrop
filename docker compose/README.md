@@ -1,4 +1,4 @@
-# Glidrop
+# LobDrop
 
 A self-hosted file sharing app. Upload files, share via link or email invite. Simple, fast, Docker-ready.
 
@@ -15,7 +15,7 @@ Open `http://localhost:3000` in your browser.
 ## Docker Hub
 
 ```
-docker pull eriklysoe/glidrop:latest
+docker pull eriklysoe/lobdrop:latest
 ```
 
 ## Environment Variables

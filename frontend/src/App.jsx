@@ -13,7 +13,7 @@ function AdminPanel({ user, onLogout }) {
     <div className="card">
       <div className="card-top">
         <a href="/" className="logo-link">
-          <h1>Glidrop</h1>
+          <h1>LobDrop</h1>
         </a>
         {user && (
           <button className="logout-btn" onClick={onLogout} title="Sign out">

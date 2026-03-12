@@ -1,4 +1,4 @@
-# Glidrop
+# LobDrop
 
 A self-hosted file sharing app. Upload files, share via link or email invite. Simple, fast, Docker-ready.
 
@@ -21,8 +21,8 @@ A self-hosted file sharing app. Upload files, share via link or email invite. Si
 ## Quick Start with Docker Compose
 
 ```bash
-git clone https://github.com/eriklysoe/glidrop.git
-cd glidrop
+git clone https://github.com/eriklysoe/lobdrop.git
+cd lobdrop
 docker compose up -d
 ```
 
@@ -35,7 +35,7 @@ Open `http://localhost:3000` in your browser.
 | `PORT` | `3000` | Server port |
 | `BASE_URL` | `http://localhost:3000` | Public URL (used in generated links) |
 | `UPLOAD_DIR` | `/data/uploads` | File storage directory |
-| `DB_PATH` | `/data/db/glidrop.db` | SQLite database path |
+| `DB_PATH` | `/data/db/lobdrop.db` | SQLite database path |
 | `MAX_FILE_SIZE_MB` | `100` | Max upload size in MB |
 | `FILE_EXPIRY_DAYS` | `7` | Default days until link expires |
 | `SECRET_KEY` | `change-me` | Key for password hashing |

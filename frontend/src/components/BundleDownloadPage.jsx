@@ -73,7 +73,7 @@ export default function BundleDownloadPage() {
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `glidrop-bundle-${token}.zip`;
+      a.download = `lobdrop-bundle-${token}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -100,7 +100,7 @@ export default function BundleDownloadPage() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
         <h1 className="dl-expired">{error}</h1>
-        <a href="/" className="btn btn-secondary" style={{ marginTop: 24, textDecoration: 'none', display: 'inline-flex' }}>Go to Glidrop</a>
+        <a href="/" className="btn btn-secondary" style={{ marginTop: 24, textDecoration: 'none', display: 'inline-flex' }}>Go to LobDrop</a>
       </div>
     );
   }

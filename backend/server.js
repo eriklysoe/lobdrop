@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'data', 'uploads');
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'db', 'glidrop.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'db', 'lobdrop.db');
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE_MB || '100', 10) * 1024 * 1024;
 const FILE_EXPIRY_DAYS = parseInt(process.env.FILE_EXPIRY_DAYS || '7', 10);
 const SECRET_KEY = process.env.SECRET_KEY || 'change-me';
@@ -557,7 +557,7 @@ app.get('/api/bundle/:token/zip', downloadLimiter, (req, res) => {
   }
 
   res.set('Content-Type', 'application/zip');
-  res.set('Content-Disposition', `attachment; filename="glidrop-bundle-${bundle.token}.zip"`);
+  res.set('Content-Disposition', `attachment; filename="lobdrop-bundle-${bundle.token}.zip"`);
 
   const archive = archiver('zip', { zlib: { level: 5 } });
   archive.on('error', (err) => {
@@ -599,5 +599,5 @@ if (fs.existsSync(frontendDist)) {
 
 // ── Start ───────────────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Glidrop running at ${BASE_URL} (port ${PORT})`);
+  console.log(`LobDrop running at ${BASE_URL} (port ${PORT})`);
 });

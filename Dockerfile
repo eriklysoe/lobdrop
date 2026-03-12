@@ -31,7 +31,7 @@ RUN mkdir -p /data/uploads /data/db
 
 ENV PORT=3000
 ENV UPLOAD_DIR=/data/uploads
-ENV DB_PATH=/data/db/glidrop.db
+ENV DB_PATH=/data/db/lobdrop.db
 
 EXPOSE 3000
 
