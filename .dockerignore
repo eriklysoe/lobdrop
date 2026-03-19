@@ -2,7 +2,16 @@
 **/dist
 .git
 .env
+.env.*
+*.key
+*.pem
 *.db
 *.db-journal
+*.db-wal
 data/
 lobdrop_promt
+backup/
+*.md
+!README.md
+docker-compose.yml
+docker-compose.*.yml

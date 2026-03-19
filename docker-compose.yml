@@ -14,9 +14,9 @@ services:
       - MAX_FILE_SIZE_MB=100
       - FILE_EXPIRY_DAYS=7
       - ADMIN_USER=admin
-      - ADMIN_PASS=testing
-      - SECRET_KEY=altofordrlkjdsokij
-      - CORS_ORIGIN=*
+      - ADMIN_PASS=${ADMIN_PASS:?ADMIN_PASS must be set in .env}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env (min 32 chars)}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - PUID=1000
       - PGID=1000
       # SMTP (uncomment to enable email invites)
