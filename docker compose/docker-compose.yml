@@ -1,6 +1,6 @@
 services:
   lobdrop:
-    image: eriklysoe/lobdrop:latest
+    image: eriklysoe/lobdrop:v1.1
     container_name: lobdrop
     restart: unless-stopped
     ports:
@@ -8,15 +8,17 @@ services:
     volumes:
       - uploads:/data/uploads
       - db:/data/db
+    env_file: .env
     environment:
       - PORT=3000
       - BASE_URL=${BASE_URL:-http://localhost:3000}
       - MAX_FILE_SIZE_MB=100
       - FILE_EXPIRY_DAYS=7
       - ADMIN_USER=admin
-      - ADMIN_PASS=changeme
-      - SECRET_KEY=change-me-to-something-random
-      - CORS_ORIGIN=*
+      - ADMIN_PASS=${ADMIN_PASS:?ADMIN_PASS must be set in .env}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env (min 32 chars)}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
       - PUID=1000
       - PGID=1000
       # SMTP (uncomment to enable email invites)
