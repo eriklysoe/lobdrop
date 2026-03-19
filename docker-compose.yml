@@ -6,8 +6,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - /home/erik/lobdrop-repo/uploads:/data/uploads
-      - /home/erik/lobdrop-repo/db:/data/db
+      - uploads:/data/uploads
+      - db:/data/db
     environment:
       - PORT=3000
       - BASE_URL=${BASE_URL:-http://localhost:3000}
