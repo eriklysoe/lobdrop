@@ -26,6 +26,24 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || '';
 
+// ── Startup validation ─────────────────────────────────────────────────────
+if (SECRET_KEY === 'change-me' || SECRET_KEY.length < 32) {
+  console.error(
+    'ERROR: SECRET_KEY must be set to a random string of at least 32 characters.\n' +
+    'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+  );
+  process.exit(1);
+}
+
+if (!ADMIN_PASS) {
+  console.error('ERROR: ADMIN_PASS must be set and cannot be empty.');
+  process.exit(1);
+}
+
+if (CORS_ORIGIN === '*') {
+  console.warn('WARNING: CORS_ORIGIN is set to "*" (wildcard). This allows any origin to make requests. Set CORS_ORIGIN to your BASE_URL in production.');
+}
+
 const SMTP_HOST = process.env.SMTP_HOST || '';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
 const SMTP_USER = process.env.SMTP_USER || '';
@@ -34,6 +52,8 @@ const SMTP_FROM = process.env.SMTP_FROM || '';
 const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
 
 const smtpConfigured = !!(SMTP_HOST && SMTP_FROM);
+const IS_HTTPS = BASE_URL.startsWith('https');
+const COOKIE_FLAGS = `Path=/; HttpOnly; SameSite=Strict${IS_HTTPS ? '; Secure' : ''}`;
 
 // ── Ensure directories ─────────────────────────────────────────────────────
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -90,11 +110,15 @@ db.exec(`
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function generateToken() {
-  return crypto.randomBytes(8).toString('base64url').slice(0, 10);
+  return crypto.randomBytes(24).toString('base64url');
 }
 
 function hashPassword(plain) {
   return crypto.createHmac('sha256', SECRET_KEY).update(plain).digest('hex');
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function formatBytes(bytes) {
@@ -134,6 +158,7 @@ if (smtpConfigured) {
 
 async function sendShareEmail(to, fileName, downloadUrl) {
   if (!transporter) return;
+  try {
   await transporter.sendMail({
     from: SMTP_FROM,
     to,
@@ -142,44 +167,69 @@ async function sendShareEmail(to, fileName, downloadUrl) {
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
         <h2 style="color:#7c3aed;">A file has been shared with you</h2>
-        <p><strong>${fileName}</strong></p>
-        <a href="${downloadUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;margin-top:12px;">Download File</a>
+        <p><strong>${escapeHtml(fileName)}</strong></p>
+        <a href="${escapeHtml(downloadUrl)}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;margin-top:12px;">Download File</a>
       </div>
     `,
   });
+  } catch (err) {
+    console.error('SMTP send error:', err.message);
+    // Never expose SMTP errors to the client — caller uses .catch(() => {})
+  }
 }
 
 async function sendBundleEmail(to, fileNames, bundleUrl) {
   if (!transporter) return;
-  const fileList = fileNames.map(n => `  - ${n}`).join('\n');
-  const fileListHtml = fileNames.map(n => `<li>${n}</li>`).join('');
-  await transporter.sendMail({
-    from: SMTP_FROM,
-    to,
-    subject: `Files shared with you (${fileNames.length} file${fileNames.length !== 1 ? 's' : ''})`,
-    text: `Files have been shared with you:\n\n${fileList}\n\nDownload: ${bundleUrl}\n`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-        <h2 style="color:#7c3aed;">Files shared with you</h2>
-        <ul>${fileListHtml}</ul>
-        <a href="${bundleUrl}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;margin-top:12px;">View &amp; Download</a>
-      </div>
-    `,
-  });
+  try {
+    const fileList = fileNames.map(n => `  - ${n}`).join('\n');
+    const fileListHtml = fileNames.map(n => `<li>${escapeHtml(n)}</li>`).join('');
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to,
+      subject: `Files shared with you (${fileNames.length} file${fileNames.length !== 1 ? 's' : ''})`,
+      text: `Files have been shared with you:\n\n${fileList}\n\nDownload: ${bundleUrl}\n`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+          <h2 style="color:#7c3aed;">Files shared with you</h2>
+          <ul>${fileListHtml}</ul>
+          <a href="${escapeHtml(bundleUrl)}" style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;margin-top:12px;">View &amp; Download</a>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('SMTP send error:', err.message);
+  }
 }
 
 // ── Express App ─────────────────────────────────────────────────────────────
 const app = express();
-app.set('trust proxy', 1);
+// Only trust proxy headers if behind a reverse proxy (HTTPS or explicit env var)
+if (IS_HTTPS || process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: IS_HTTPS ? [] : null,
+    },
+  },
   crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: false,
-  originAgentCluster: false,
+  hsts: IS_HTTPS,
 }));
-app.use(cors({ origin: CORS_ORIGIN }));
-app.use(express.json());
+app.use(cors({
+  origin: CORS_ORIGIN,
+  credentials: CORS_ORIGIN !== '*',
+}));
+app.use(express.json({ limit: '1mb' }));
 
 // Rate limiters
 const uploadLimiter = rateLimit({
@@ -191,20 +241,38 @@ const uploadLimiter = rateLimit({
 });
 
 const downloadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 60 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many downloads. Try again later.' },
 });
 
-// Multer storage
+const emailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many email requests. Try again later.' },
+});
+
+// Sanitise filename: strip path traversal components, keep only the base name
+function sanitiseFilename(name) {
+  // Remove path separators and traversal
+  let safe = name.replace(/[/\\]/g, '_').replace(/\.\./g, '_');
+  // Decode percent-encoded traversal
+  safe = decodeURIComponent(safe).replace(/[/\\]/g, '_').replace(/\.\./g, '_');
+  // Remove control characters and null bytes
+  safe = safe.replace(/[\x00-\x1f\x7f]/g, '');
+  // Fallback if empty
+  return safe || 'unnamed';
+}
+
+// Multer storage — store under UUID only (no extension on disk)
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
-  filename: (_req, file, cb) => {
-    const unique = crypto.randomUUID();
-    const ext = path.extname(file.originalname);
-    cb(null, unique + ext);
+  filename: (_req, _file, cb) => {
+    cb(null, crypto.randomUUID());
   },
 });
 const upload = multer({ storage, limits: { fileSize: MAX_FILE_SIZE } });
@@ -216,13 +284,17 @@ function generateSession() {
   return crypto.randomBytes(32).toString('base64url');
 }
 
+function hashSession(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
 function requireAuth(req, res, next) {
   const token = req.cookies?.session;
   if (!token) return res.status(401).json({ error: 'Login required' });
 
   const session = db.prepare(
     `SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')`
-  ).get(token);
+  ).get(hashSession(token));
 
   if (!session) return res.status(401).json({ error: 'Session expired' });
   req.user = session.username;
@@ -254,28 +326,48 @@ app.use((req, _res, next) => {
 // Health check
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
 
-// SMTP status
-app.get('/api/smtp-status', (_req, res) => res.json({ configured: smtpConfigured }));
+// SMTP status (requires auth — leaking SMTP config is an info disclosure risk)
+app.get('/api/smtp-status', requireAuth, (_req, res) => res.json({ configured: smtpConfigured }));
 
 // Auth: login
-app.post('/api/auth/login', express.json(), (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Try again later.' },
+});
+
+app.post('/api/auth/login', loginLimiter, express.json(), (req, res) => {
   const { username, password } = req.body || {};
 
-  if (!ADMIN_PASS) {
-    return res.status(500).json({ error: 'ADMIN_PASS not configured on server' });
+  if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Invalid credentials' });
   }
 
-  if (username !== ADMIN_USER || password !== ADMIN_PASS) {
+  // Enforce max 72 chars to prevent bcrypt DoS with very long inputs
+  if (password.length > 72) {
+    return res.status(400).json({ error: 'Invalid credentials' });
+  }
+
+  // Timing-safe comparison to prevent timing attacks
+  // Hash both sides so timingSafeEqual always compares equal-length buffers
+  const hashStr = (s) => crypto.createHash('sha256').update(s).digest();
+  const userMatch = crypto.timingSafeEqual(hashStr(username), hashStr(ADMIN_USER));
+  const passMatch = crypto.timingSafeEqual(hashStr(password), hashStr(ADMIN_PASS));
+
+  if (!userMatch || !passMatch) {
+    console.warn(`Failed login attempt from IP ${req.ip} at ${new Date().toISOString()}`);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
   const token = generateSession();
   db.prepare(
     `INSERT INTO sessions (token, username, expires_at) VALUES (?, ?, datetime('now', '+' || ? || ' days'))`
-  ).run(token, username, SESSION_DAYS);
+  ).run(hashSession(token), username, SESSION_DAYS);
 
   res.setHeader('Set-Cookie',
-    `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_DAYS * 86400}`
+    `session=${token}; ${COOKIE_FLAGS}; Max-Age=${SESSION_DAYS * 86400}`
   );
   res.json({ username });
 });
@@ -287,7 +379,7 @@ app.get('/api/auth/me', (req, res) => {
 
   const session = db.prepare(
     `SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')`
-  ).get(token);
+  ).get(hashSession(token));
 
   if (!session) return res.status(401).json({ error: 'Session expired' });
   res.json({ username: session.username });
@@ -297,10 +389,17 @@ app.get('/api/auth/me', (req, res) => {
 app.post('/api/auth/logout', (req, res) => {
   const token = req.cookies?.session;
   if (token) {
-    db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(hashSession(token));
   }
-  res.setHeader('Set-Cookie', 'session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+  res.setHeader('Set-Cookie', `session=; ${COOKIE_FLAGS}; Max-Age=0`);
   res.json({ ok: true });
+});
+
+// Auth: logout all sessions (admin only)
+app.post('/api/auth/logout-all', requireAuth, (_req, res) => {
+  db.prepare('DELETE FROM sessions').run();
+  res.setHeader('Set-Cookie', `session=; ${COOKIE_FLAGS}; Max-Age=0`);
+  res.json({ ok: true, message: 'All sessions revoked' });
 });
 
 // Upload (requires auth)
@@ -311,8 +410,29 @@ app.post('/api/upload', requireAuth, uploadLimiter, upload.array('files', 50), a
     }
 
     const { password, maxDownloads, expiryDays, emails, uploader } = req.body;
+
+    // Input validation
     const expiry = parseInt(expiryDays, 10) || FILE_EXPIRY_DAYS;
+    if (expiry < 1 || expiry > 365) {
+      return res.status(400).json({ error: 'Expiry days must be between 1 and 365' });
+    }
     const maxDl = maxDownloads ? parseInt(maxDownloads, 10) : null;
+    if (maxDl !== null && (maxDl < 1 || maxDl > 100000)) {
+      return res.status(400).json({ error: 'Max downloads must be between 1 and 100000' });
+    }
+    if (password && password.length > 72) {
+      return res.status(400).json({ error: 'Password must be 72 characters or fewer' });
+    }
+    // Validate email format if provided
+    if (emails) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const recipients = emails.split(',').map(e => e.trim()).filter(Boolean);
+      for (const addr of recipients) {
+        if (!emailRegex.test(addr)) {
+          return res.status(400).json({ error: `Invalid email address: ${addr}` });
+        }
+      }
+    }
     const pwHash = password ? hashPassword(password) : null;
 
     const insertStmt = db.prepare(`
@@ -324,12 +444,13 @@ app.post('/api/upload', requireAuth, uploadLimiter, upload.array('files', 50), a
 
     for (const file of req.files) {
       const token = generateToken();
-      insertStmt.run(token, file.originalname, file.filename, file.size, uploader || '', pwHash, maxDl, expiry);
+      const safeName = sanitiseFilename(file.originalname);
+      insertStmt.run(token, safeName, file.filename, file.size, uploader || '', pwHash, maxDl, expiry);
 
       const shareUrl = `${BASE_URL}/d/${token}`;
       results.push({
         token,
-        name: file.originalname,
+        name: safeName,
         size: formatBytes(file.size),
         url: shareUrl,
       });
@@ -338,7 +459,7 @@ app.post('/api/upload', requireAuth, uploadLimiter, upload.array('files', 50), a
       if (emails && smtpConfigured) {
         const recipients = emails.split(',').map(e => e.trim()).filter(Boolean);
         for (const to of recipients) {
-          sendShareEmail(to, file.originalname, shareUrl).catch(() => {});
+          sendShareEmail(to, safeName, shareUrl).catch(() => {});
         }
       }
     }
@@ -425,16 +546,25 @@ app.get('/api/download/:token', downloadLimiter, (req, res) => {
     return res.status(410).json({ error: 'Download limit reached' });
   }
 
-  // Check password
+  // Check password (timing-safe comparison)
   if (file.password_hash) {
     const pw = req.query.pw || '';
-    if (hashPassword(pw) !== file.password_hash) {
+    const inputHash = Buffer.from(hashPassword(pw), 'hex');
+    const storedHash = Buffer.from(file.password_hash, 'hex');
+    if (inputHash.length !== storedHash.length || !crypto.timingSafeEqual(inputHash, storedHash)) {
       return res.status(403).json({ error: 'Incorrect password' });
     }
   }
 
-  // Increment download count
-  db.prepare('UPDATE files SET download_count = download_count + 1 WHERE id = ?').run(file.id);
+  // Atomically increment download count and re-check limit in one statement
+  const updated = db.prepare(
+    `UPDATE files SET download_count = download_count + 1
+     WHERE id = ? AND (max_downloads IS NULL OR download_count < max_downloads)`
+  ).run(file.id);
+
+  if (updated.changes === 0) {
+    return res.status(410).json({ error: 'Download limit reached' });
+  }
 
   const filePath = path.join(UPLOAD_DIR, file.stored_name);
   if (!fs.existsSync(filePath)) {
@@ -447,11 +577,25 @@ app.get('/api/download/:token', downloadLimiter, (req, res) => {
 // ── Bundles ─────────────────────────────────────────────────────────────────
 
 // Create bundle (requires auth)
-app.post('/api/bundles', requireAuth, (req, res) => {
+app.post('/api/bundles', requireAuth, emailLimiter, (req, res) => {
   try {
     const { fileTokens, emails } = req.body || {};
     if (!Array.isArray(fileTokens) || fileTokens.length === 0) {
       return res.status(400).json({ error: 'No files selected' });
+    }
+    if (fileTokens.length > 100) {
+      return res.status(400).json({ error: 'Maximum 100 files per bundle' });
+    }
+
+    // Validate email format if provided
+    if (emails) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const recipients = emails.split(',').map(e => e.trim()).filter(Boolean);
+      for (const addr of recipients) {
+        if (!emailRegex.test(addr)) {
+          return res.status(400).json({ error: `Invalid email address: ${addr}` });
+        }
+      }
     }
 
     // Validate all tokens exist and are not expired
@@ -582,10 +726,21 @@ app.get('/api/bundle/:token/zip', downloadLimiter, (req, res) => {
     usedNames.set(f.original_name, count + 1);
 
     archive.file(filePath, { name });
-    db.prepare('UPDATE files SET download_count = download_count + 1 WHERE id = ?').run(f.id);
+    db.prepare(
+      `UPDATE files SET download_count = download_count + 1
+       WHERE id = ? AND (max_downloads IS NULL OR download_count < max_downloads)`
+    ).run(f.id);
   }
 
   archive.finalize();
+});
+
+// ── Global error handler (never leak stack traces) ──────────────────────────
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error:', err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ── Serve frontend (production) ─────────────────────────────────────────────
